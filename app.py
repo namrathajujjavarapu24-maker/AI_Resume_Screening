@@ -1,5 +1,3 @@
-%%writefile app.py
-
 import os
 import gradio as gr
 import pandas as pd
@@ -13,6 +11,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
+# Extract text from PDF
 def extract_text_from_pdf(pdf_path):
     text = ""
 
@@ -27,6 +26,7 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 
+# Find matching and missing skills
 def find_matching_keywords(job_description, resume_text):
 
     keywords = [
@@ -66,6 +66,7 @@ def find_matching_keywords(job_description, resume_text):
     missing = []
 
     for keyword in required:
+
         if keyword in resume_lower:
             matched.append(keyword)
         else:
@@ -74,6 +75,7 @@ def find_matching_keywords(job_description, resume_text):
     return matched, missing
 
 
+# Main screening function
 def screen_resumes(job_description, resume_files):
 
     if not job_description.strip():
@@ -92,11 +94,13 @@ def screen_resumes(job_description, resume_files):
         resume_texts.append(text)
         resume_names.append(os.path.basename(file))
 
-    # Generate embeddings
+    # Job embedding
     job_embedding = model.encode([job_description])
+
+    # Resume embeddings
     resume_embeddings = model.encode(resume_texts)
 
-    # Calculate similarity
+    # Similarity
     scores = cosine_similarity(
         job_embedding,
         resume_embeddings
@@ -113,18 +117,21 @@ def screen_resumes(job_description, resume_files):
 
         results.append({
             "Resume": resume_names[i],
-            "Match Score (%)": round(float(scores[i]) * 100, 2),
+            "Match Score": round(float(scores[i]) * 100, 2),
             "Matched Skills": ", ".join(matched) if matched else "None",
             "Missing Skills": ", ".join(missing) if missing else "None"
         })
 
+    # Create table
     df = pd.DataFrame(results)
 
+    # Rank candidates
     df = df.sort_values(
-        by="Match Score (%)",
+        by="Match Score",
         ascending=False
-    )
+    ).reset_index(drop=True)
 
+    # Add rank
     df.insert(
         0,
         "Rank",
@@ -134,20 +141,22 @@ def screen_resumes(job_description, resume_files):
     return "Screening completed successfully!", df
 
 
-# Create Gradio UI
+# Create web interface
 with gr.Blocks(title="AI Resume Screening System") as demo:
 
-    gr.Markdown("""
-    # 🤖 AI-Based Resume Screening System
+    gr.Markdown(
+        """
+        # 🤖 AI-Based Resume Screening System
 
-    Upload multiple resumes and rank candidates based on
-    the job description using AI, Transformer Embeddings
-    and Cosine Similarity.
-    """)
+        Automatically screen and rank resumes based on job requirements.
+
+        **NLP + Transformer Embeddings + Cosine Similarity**
+        """
+    )
 
     job_description = gr.Textbox(
         label="📋 Job Description",
-        placeholder="Enter job requirements here...",
+        placeholder="Enter the job requirements...",
         lines=8
     )
 
@@ -179,10 +188,12 @@ with gr.Blocks(title="AI Resume Screening System") as demo:
     )
 
 
-# Render needs the app to use its PORT
-port = int(os.environ.get("PORT", 10000))
+# Start application
+if __name__ == "__main__":
 
-demo.launch(
-    server_name="0.0.0.0",
-    server_port=port
-)
+    port = int(os.environ.get("PORT", 7860))
+
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=port
+    )
