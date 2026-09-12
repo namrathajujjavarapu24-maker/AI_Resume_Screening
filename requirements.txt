@@ -1,0 +1,7 @@
+%%writefile requirements.txt
+
+gradio
+pandas
+pypdf
+sentence-transformers
+scikit-learn
