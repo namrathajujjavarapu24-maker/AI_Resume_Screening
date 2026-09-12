@@ -1,6 +1,4 @@
 gradio
 pypdf
-sentence-transformers
 scikit-learn
 pandas
-torch
